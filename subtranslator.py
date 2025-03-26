@@ -3,6 +3,43 @@ import sys
 import ffmpeg
 import subprocess
 
+class SubtitleEntry:
+    def __init__(self, number: str, timeline: str, text: str):
+        self.number = number
+        self.timeline = timeline
+        self.text = text
+
+def parse_subtitles(subtitle_text: str) -> list[SubtitleEntry]:
+    entries = []
+    current_entry = {'number': '', 'timeline': '', 'text': []}
+    
+    for line in subtitle_text.split('\n'):
+        line = line.strip()
+        if not line:
+            if current_entry['number']:  # Complete entry found
+                entries.append(SubtitleEntry(
+                    current_entry['number'],
+                    current_entry['timeline'],
+                    '\n'.join(current_entry['text'])
+                ))
+                current_entry = {'number': '', 'timeline': '', 'text': []}
+        elif '-->' in line:
+            current_entry['timeline'] = line
+        elif line.isdigit():
+            current_entry['number'] = line
+        else:
+            current_entry['text'].append(line)
+    
+    # Add the last entry if exists
+    if current_entry['number']:
+        entries.append(SubtitleEntry(
+            current_entry['number'],
+            current_entry['timeline'],
+            '\n'.join(current_entry['text'])
+        ))
+    
+    return entries
+
 def extract_subtitle(mkv_file, stream_index):
     try:
 
@@ -73,10 +110,11 @@ def main():
     stream_index = list_subtitles(mkv_file)
     if stream_index is not None:
         subtitle_text = extract_subtitle(mkv_file, stream_index)
-        print("\nSubtitle content loaded successfully!")
-        print(subtitle_text)
         # Now subtitle_text contains the selected subtitle content
         # You can use it for further processing
+        subtitle_entries = parse_subtitles(subtitle_text)
+        print("\nSubtitle content loaded successfully!")
+
 
 if __name__ == "__main__":
     main()
