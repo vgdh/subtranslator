@@ -2,6 +2,44 @@ import os
 import sys
 import ffmpeg
 import subprocess
+from dotenv import load_dotenv
+from pathlib import Path
+from google import genai
+
+def gemini_request(api_key: str, model: str, content: str) -> str:
+    """Send a request to the Gemini API"""
+    client = genai.Client(api_key=api_key)
+    response = client.models.generate_content(model=model, contents=content)
+    return response.text
+
+def llm_request(config, content: str) -> str:
+    if config['model'] == 'gemini':
+        return gemini_request(config['api_key'], config['model'], content)
+    else:
+        raise ValueError(f"Unsupported model: {config['model']}")
+
+
+def create_default_config():
+    """Create default .env file if it doesn't exist"""
+    env_path = Path('.env')
+    if not env_path.exists():
+        with open(env_path, 'w') as f:
+            f.write("MODEL=gemini\nAPI_KEY=enterkey")
+
+def load_config():
+    """Load configuration from .env file"""
+    create_default_config()
+    load_dotenv()
+    
+    config = {
+        'model': os.getenv('MODEL', 'gemini'),
+        'api_key': os.getenv('API_KEY', 'enterkey')
+    }
+    
+    if config['api_key'] == 'enterkey':
+        print("Warning: Please set your API key in the .env file")
+    
+    return config
 
 class SubtitleEntry:
     def __init__(self, number: str, timeline: str, text: str):
@@ -101,6 +139,9 @@ def main():
     if len(sys.argv) != 2:
         print("Usage: python main.py <mkv_file>")
         sys.exit(1)
+    
+    # Load configuration
+    config = load_config()
     
     mkv_file = sys.argv[1]
     if not mkv_file.lower().endswith('.mkv'):
