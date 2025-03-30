@@ -4,7 +4,8 @@ import ffmpeg
 import subprocess
 from dotenv import load_dotenv
 from pathlib import Path
-from google import genai
+from google import genai #google-genai
+import json
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API"""
@@ -13,10 +14,10 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
     return response.text
 
 def llm_request(config, content: str) -> str:
-    if config['model'] == 'gemini':
-        return gemini_request(config['api_key'], config['model'], content)
+    if config['provider'] == 'gemini':
+        return gemini_request(config['api_key'], "gemini-2.5-pro-exp-03-25", content)
     else:
-        raise ValueError(f"Unsupported model: {config['model']}")
+        raise ValueError(f"Unsupported model: {config['provider']}")
 
 
 def create_default_config():
@@ -24,7 +25,7 @@ def create_default_config():
     env_path = Path('.env')
     if not env_path.exists():
         with open(env_path, 'w') as f:
-            f.write("MODEL=gemini\nAPI_KEY=enterkey")
+            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE=russian")
 
 def load_config():
     """Load configuration from .env file"""
@@ -32,8 +33,10 @@ def load_config():
     load_dotenv()
     
     config = {
-        'model': os.getenv('MODEL', 'gemini'),
-        'api_key': os.getenv('API_KEY', 'enterkey')
+        'provider': os.getenv('PROVIDER', 'gemini'),
+        'api_key': os.getenv('API_KEY', 'enterkey'),
+        'language': os.getenv('LANGUAGE', 'russian')
+
     }
     
     if config['api_key'] == 'enterkey':
@@ -135,6 +138,65 @@ def list_subtitles(mkv_file):
         print("Error: An error occurred while listing subtitle tracks")
         sys.exit(1)
 
+def batch_subtitles(subtitle_entries: list[SubtitleEntry], batch_size: int = 10) -> list[list[str]]:
+    """
+    Split subtitle entries into batches and extract their text content
+    
+    Args:
+        subtitle_entries: List of SubtitleEntry objects
+        batch_size: Number of subtitle texts per batch
+        
+    Returns:
+        List of batches, where each batch is a list of subtitle texts
+    """
+    batches = []
+    current_batch = []
+    
+    for entry in subtitle_entries:
+        current_batch.append(entry.text)
+        
+        if len(current_batch) >= batch_size:
+            batches.append(current_batch)
+            current_batch = []
+    
+    # Add the remaining entries if any
+    if current_batch:
+        batches.append(current_batch)
+    
+    return batches
+
+def process_batch(batch: list[str], config: dict) -> list[str]:
+    """
+    Process a batch of subtitle texts using the LLM API
+    
+    Args:
+        batch: List of subtitle texts to process
+        config: Configuration dictionary with API settings
+        
+    Returns:
+        List of processed/translated texts
+    """
+    # Create JSON array of texts
+    content = json.dumps(batch)
+    
+    print(str(content))
+    # Make the API request
+
+    request =  request_builder(content, config)
+
+    response = llm_request(config, )
+    
+    # Parse the response and return processed texts
+    # Implementation depends on your API response format
+    return [] 
+
+def request_builder(content, config):
+    req = f"""Translate this json to {config['language']}:
+{str(content)}
+you MUST respond as JSON, and the response must be a JSON array of the same length as the input JSON array.
+"""
+    return req
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python main.py <mkv_file>")
@@ -151,11 +213,17 @@ def main():
     stream_index = list_subtitles(mkv_file)
     if stream_index is not None:
         subtitle_text = extract_subtitle(mkv_file, stream_index)
-        # Now subtitle_text contains the selected subtitle content
-        # You can use it for further processing
         subtitle_entries = parse_subtitles(subtitle_text)
         print("\nSubtitle content loaded successfully!")
+        
+        # Create batches of subtitle texts
+        batches = batch_subtitles(subtitle_entries)
+        print(f"Created {len(batches)} batches of subtitles")
+        
+        for batch in batches:
+            process_batch(batch, config)  # Future function to implement
 
-
+        
+        
 if __name__ == "__main__":
     main()
