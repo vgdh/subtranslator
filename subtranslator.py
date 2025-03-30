@@ -10,7 +10,7 @@ import time
 
 _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
-_GEMINI_MIN_REQUEST_INTERVAL = 60/8  # 7.5 seconds between requests (8 requests per minute)
+_GEMINI_MIN_REQUEST_INTERVAL = 60/15  # requests per minute)
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API with rate limiting
@@ -35,7 +35,7 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
 
 def llm_request(config, content: str) -> str:
     if config['provider'] == 'gemini':
-        return gemini_request(config['api_key'], "gemini-2.5-pro-exp-03-25", content)
+        return gemini_request(config['api_key'], "gemini-2.0-flash", content)
     else:
         raise ValueError(f"Unsupported model: {config['provider']}")
 
@@ -259,6 +259,18 @@ def main():
     # Load configuration
     config = load_config()
     
+    # Pretty print configuration
+    print("\nCurrent configuration:")
+    print("-" * 50)
+    for key, value in config.items():
+        if key == 'api_key':
+            # Mask API key for security
+            masked_key = value[:4] + '*' * (len(value) - 4) if len(value) > 4 else '****'
+            print(f"{key:10}: {masked_key}")
+        else:
+            print(f"{key:10}: {value}")
+    print("-" * 50 + "\n")
+
     mkv_file = sys.argv[1]
     if not mkv_file.lower().endswith('.mkv'):
         print("Error: Please provide a .mkv file")
@@ -271,7 +283,7 @@ def main():
         print("\nSubtitle content loaded successfully!")
         
         # Create batches of subtitle texts
-        batches = batch_subtitles(subtitle_entries, batch_size=9)
+        batches = batch_subtitles(subtitle_entries, batch_size=50)
         print(f"Created {len(batches)} batches of subtitles")
         
         translated_entries = []
