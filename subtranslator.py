@@ -288,9 +288,22 @@ def main():
         
         translated_entries = []
    
+        batch_execute_times_sec = []
         for batch in batches:
-            print(f"Processing batch {batches.index(batch)+1} of {len(batches)}")
+            if len(batch_execute_times_sec)==0:
+                print(f"Processing batch {batches.index(batch)+1} of {len(batches)}")
+            else:
+                extimated_time_for_one_batch = sum(batch_execute_times_sec)/len(batch_execute_times_sec)
+                estimated_time = extimated_time_for_one_batch * (len(batches) - len(batch_execute_times_sec))
+                est_minutes = int(estimated_time // 60)
+                est_seconds = int(estimated_time % 60)
+                print(f"Processing batch {batches.index(batch)+1} of {len(batches)} Estimated time for remaining batches: {est_minutes} minutes {est_seconds} seconds")
+            
+            start_time = time.time()
             translated_texts = process_batch(batch, config)
+            end_time = time.time()
+            batch_execute_times_sec.append(end_time - start_time)
+
             for id in range(len(batch)):
                 # Add the translated text to the corresponding entry
                 subtitle_entries[id].text = translated_texts[id]
