@@ -1,4 +1,4 @@
-# Subtranslator
+# Subtranslator (Subtitle translator)
 
 A Python tool that extracts and translates subtitles from MKV files using AI.
 
