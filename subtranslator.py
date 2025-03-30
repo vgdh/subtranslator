@@ -6,11 +6,31 @@ from dotenv import load_dotenv
 from pathlib import Path
 from google import genai #google-genai
 import json
+import time
+
+_TMP_FILE = "temp_subtitle.srt"
+_last_request_time = 0
+_GEMINI_MIN_REQUEST_INTERVAL = 60/8  # 7.5 seconds between requests (8 requests per minute)
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
-    """Send a request to the Gemini API"""
+    """Send a request to the Gemini API with rate limiting
+    """
+    global _last_request_time
+    
+    # Calculate time to wait
+    now = time.time()
+    time_since_last = now - _last_request_time
+    if time_since_last < _GEMINI_MIN_REQUEST_INTERVAL:
+        wait_time = _GEMINI_MIN_REQUEST_INTERVAL - time_since_last
+        time.sleep(wait_time)
+    
+    # Make the request
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(model=model, contents=content)
+    
+    # Update last request time
+    _last_request_time = time.time()
+    
     return response.text
 
 def llm_request(config, content: str) -> str:
@@ -84,7 +104,7 @@ def parse_subtitles(subtitle_text: str) -> list[SubtitleEntry]:
 def extract_subtitle(mkv_file, stream_index):
     try:
 
-        output_file = f"temp_subtitle.srt"
+        output_file = _TMP_FILE
         if os.path.exists(output_file):
             os.remove(output_file) 
 
@@ -179,23 +199,57 @@ def process_batch(batch: list[str], config: dict) -> list[str]:
     # Create JSON array of texts
     content = json.dumps(batch)
     
-    print(str(content))
     # Make the API request
 
     request =  request_builder(content, config)
 
-    response = llm_request(config, )
+    response = llm_request(config, request)
+   
+    if response:
+        cleaned_response = response[response.find('['):response.rfind(']') + 1]
+        # Parse the JSON response
+        try:
+            translated_texts = json.loads(cleaned_response)
+            
+        except json.JSONDecodeError:
+            print("Error: Failed to decode JSON response")
+            return []
+    else:
+        raise ValueError("Error: No response from LLM API")
     
-    # Parse the response and return processed texts
-    # Implementation depends on your API response format
-    return [] 
+    if len(translated_texts) != len(batch):
+        Exception("Error: Mismatch in number of entries between request and response")
+
+    return translated_texts
 
 def request_builder(content, config):
-    req = f"""Translate this json to {config['language']}:
+    req = f"""Task: 
+Translate provided JSON to {config['language']}
+============================================================
+Context:
 {str(content)}
-you MUST respond as JSON, and the response must be a JSON array of the same length as the input JSON array.
-"""
+============================================================
+You MUST respond JSON only, and the response must be a JSON array of the same length as the input JSON array."""
     return req
+
+def format_subtitle_entry(entry: SubtitleEntry) -> str:
+    """Convert a SubtitleEntry to SRT format string"""
+    return f"{entry.number}\n{entry.timeline}\n{entry.text}\n"
+
+def save_subtitles(config, entries: list[SubtitleEntry], mkv_file: str):
+    """Save subtitle entries to a file in SRT format"""
+    # Create output filename by replacing .mkv extension with .srt
+    output_file = Path(mkv_file).with_stem(f"{Path(mkv_file).stem}_{config['language']}").with_suffix('.srt')
+    
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            for entry in entries:
+                f.write(format_subtitle_entry(entry))
+                f.write('\n')  # Extra newline between entries
+        print(f"Translated subtitles saved to: {output_file}")
+    except Exception as e:
+        print(f"Error saving subtitles: {str(e)}")
+        sys.exit(1)
 
 def main():
     if len(sys.argv) != 2:
@@ -217,13 +271,31 @@ def main():
         print("\nSubtitle content loaded successfully!")
         
         # Create batches of subtitle texts
-        batches = batch_subtitles(subtitle_entries)
+        batches = batch_subtitles(subtitle_entries, batch_size=9)
         print(f"Created {len(batches)} batches of subtitles")
         
+        translated_entries = []
+   
         for batch in batches:
-            process_batch(batch, config)  # Future function to implement
+            print(f"Processing batch {batches.index(batch)+1} of {len(batches)}")
+            translated_texts = process_batch(batch, config)
+            for id in range(len(batch)):
+                # Add the translated text to the corresponding entry
+                subtitle_entries[id].text = translated_texts[id]
+                translated_entries.append(subtitle_entries[id])
+            
+            # Remove the processed batch from the original list
+            subtitle_entries = subtitle_entries[len(batch):]
+        
+        # Save the translated subtitles
+        save_subtitles(config, translated_entries, mkv_file)
 
-        
-        
+
+    if os.path.exists(_TMP_FILE):
+        try:
+            os.remove(_TMP_FILE)
+        except Exception as e:
+            print(f"Warning: Could not remove temporary file {_TMP_FILE}: {str(e)}")
+            
 if __name__ == "__main__":
     main()
