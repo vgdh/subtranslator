@@ -283,7 +283,7 @@ def main():
         print("\nSubtitle content loaded successfully!")
         
         # Create batches of subtitle texts
-        batches = batch_subtitles(subtitle_entries, batch_size=100)
+        batches = batch_subtitles(subtitle_entries, batch_size=50)
         print(f"Created {len(batches)} batches of subtitles")
         
         translated_entries = []
