@@ -196,31 +196,37 @@ def process_batch(batch: list[str], config: dict) -> list[str]:
     Returns:
         List of processed/translated texts
     """
-    # Create JSON array of texts
-    content = json.dumps(batch)
+    max_retries = 3
+    retry_count = 0
     
-    # Make the API request
-
-    request =  request_builder(content, config)
-
-    response = llm_request(config, request)
-   
-    if response:
-        cleaned_response = response[response.find('['):response.rfind(']') + 1]
-        # Parse the JSON response
-        try:
-            translated_texts = json.loads(cleaned_response)
-            
-        except json.JSONDecodeError:
-            print("Error: Failed to decode JSON response")
-            return []
-    else:
-        raise ValueError("Error: No response from LLM API")
+    while retry_count < max_retries:
+        # Create JSON array of texts
+        content = json.dumps(batch)
+        
+        # Make the API request
+        request = request_builder(content, config)
+        response = llm_request(config, request)
+        
+        if response:
+            cleaned_response = response[response.find('['):response.rfind(']') + 1]
+            # Parse the JSON response
+            try:
+                translated_texts = json.loads(cleaned_response)
+                
+                # Check if lengths match
+                if len(translated_texts) == len(batch):
+                    return translated_texts
+                else:
+                    print(f"Warning: Response length mismatch (got {len(translated_texts)}, expected {len(batch)}). Retrying...")
+                    retry_count += 1
+                    
+            except json.JSONDecodeError:
+                print("Error: Failed to decode JSON response. Retrying...")
+                retry_count += 1
+        else:
+            raise ValueError("Error: No response from LLM API")
     
-    if len(translated_texts) != len(batch):
-        Exception("Error: Mismatch in number of entries between request and response")
-
-    return translated_texts
+    raise Exception(f"Failed to get correct translation after {max_retries} attempts")
 
 def request_builder(content, config):
     req = f"""Task: 
