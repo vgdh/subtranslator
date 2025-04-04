@@ -41,22 +41,24 @@ def llm_request(config, content: str) -> str:
 
 
 def create_default_config():
-    """Create default .env file if it doesn't exist"""
-    env_path = Path('.env')
+    """Create default .env file if it doesn't exist in the script's directory"""
+    script_dir = Path(__file__).parent
+    env_path = script_dir / '.env'
     if not env_path.exists():
         with open(env_path, 'w') as f:
             f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE=russian")
 
 def load_config():
     """Load configuration from .env file"""
+    script_dir = Path(__file__).parent
+    env_path = script_dir / '.env'
     create_default_config()
-    load_dotenv()
+    load_dotenv(env_path)
     
     config = {
         'provider': os.getenv('PROVIDER', 'gemini'),
         'api_key': os.getenv('API_KEY', 'enterkey'),
         'language': os.getenv('LANGUAGE', 'russian')
-
     }
     
     if config['api_key'] == 'enterkey':
