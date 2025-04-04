@@ -4,7 +4,7 @@ A Python tool that extracts and translates subtitles from MKV files using AI.
 
 ## Features
 - Extracts subtitle tracks from MKV files using ffmpeg
-- Translates subtitles using AI model (only Google's Gemini currently implemented)
+- Translates subtitles using AI model (only Google's Gemini currently implemented. You need to create a free key https://aistudio.google.com/apikey)
 - Supports batch processing to handle rate limits
 - Shows estimated completion time during translation
 - Saves translated subtitles as SRT files
