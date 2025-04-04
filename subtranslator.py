@@ -71,6 +71,18 @@ class SubtitleEntry:
         self.text = text
 
 def parse_subtitles(subtitle_text: str) -> list[SubtitleEntry]:
+    """
+    Parses subtitle text in SRT (SubRip Subtitle) format and converts it into a list of SubtitleEntry objects.
+    Args:
+        subtitle_text (str): The raw subtitle text in SRT format.
+    Returns:
+        list[SubtitleEntry]: A list of SubtitleEntry objects, where each entry contains the subtitle number,
+                             timeline, and text.
+    The function processes the input subtitle text line by line, identifying subtitle numbers, timelines, 
+    and text content. It groups these components into SubtitleEntry objects and returns them as a list.
+    Blank lines are used to separate individual subtitle entries.
+    """
+
     entries = []
     current_entry = {'number': '', 'timeline': '', 'text': []}
     
@@ -257,6 +269,26 @@ def save_subtitles(config, entries: list[SubtitleEntry], mkv_file: str):
         print(f"Error saving subtitles: {str(e)}")
         sys.exit(1)
 
+def remove_curly_brace_content(entries: list[SubtitleEntry]) -> list[SubtitleEntry]:
+    """
+    Remove all text within curly braces (including the braces) from subtitle entries.
+    
+    Args:
+        entries: List of SubtitleEntry objects
+        
+    Returns:
+        List of SubtitleEntry objects with curly brace content removed
+    """
+    import re
+    
+    for entry in entries:
+        # Remove all text within curly braces including the braces
+        entry.text = re.sub(r'\{[^}]*\}', '', entry.text)
+        # Remove any extra whitespace that might be left
+        entry.text = re.sub(r'\s+', ' ', entry.text).strip()
+    
+    return entries
+
 def main():
     if len(sys.argv) != 2:
         print("Usage: python main.py <mkv_file>")
@@ -286,7 +318,11 @@ def main():
     if stream_index is not None:
         subtitle_text = extract_subtitle(mkv_file, stream_index)
         subtitle_entries = parse_subtitles(subtitle_text)
+        
         print("\nSubtitle content loaded successfully!")
+        
+        # Remove curly brace content from subtitles
+        subtitle_entries = remove_curly_brace_content(subtitle_entries)
         
         # Create batches of subtitle texts
         batches = batch_subtitles(subtitle_entries, batch_size=50)
