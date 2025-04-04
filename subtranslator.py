@@ -324,6 +324,18 @@ def main():
         # Remove curly brace content from subtitles
         subtitle_entries = remove_curly_brace_content(subtitle_entries)
         
+        # Save the original subtitle entries to a file
+        original_subtitle_file = Path(mkv_file).with_suffix('.srt')
+        try:
+            with open(original_subtitle_file, 'w', encoding='utf-8') as f:
+                for entry in subtitle_entries:
+                    f.write(format_subtitle_entry(entry))
+                    f.write('\n')  # Extra newline between entries
+                print(f"Original subtitles saved to: {original_subtitle_file}")
+        except Exception as e:
+            print(f"Error saving original subtitles: {str(e)}")
+            sys.exit(1)
+
         # Create batches of subtitle texts
         batches = batch_subtitles(subtitle_entries, batch_size=50)
         print(f"Created {len(batches)} batches of subtitles")
