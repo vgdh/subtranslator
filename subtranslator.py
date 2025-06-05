@@ -11,6 +11,8 @@ import time
 _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/15  # requests per minute)
+_GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+_RETRY = 10
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API with rate limiting
@@ -35,7 +37,7 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
 
 def llm_request(config, content: str) -> str:
     if config['provider'] == 'gemini':
-        return gemini_request(config['api_key'], "gemini-2.0-flash", content)
+        return gemini_request(config['api_key'], _GEMINI_MODEL, content)
     else:
         raise ValueError(f"Unsupported model: {config['provider']}")
 
@@ -210,10 +212,10 @@ def process_batch(batch: list[str], config: dict) -> list[str]:
     Returns:
         List of processed/translated texts
     """
-    max_retries = 3
+
     retry_count = 0
     
-    while retry_count < max_retries:
+    while retry_count < _RETRY:
         # Create JSON array of texts
         content = json.dumps(batch)
         
@@ -240,7 +242,7 @@ def process_batch(batch: list[str], config: dict) -> list[str]:
         else:
             raise ValueError("Error: No response from LLM API")
     
-    raise Exception(f"Failed to get correct translation after {max_retries} attempts")
+    raise Exception(f"Failed to get correct translation after {_RETRY} attempts")
 
 def request_builder(content, config):
     req = f"""Task: 
