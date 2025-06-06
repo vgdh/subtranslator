@@ -13,6 +13,7 @@ _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/15  # requests per minute)
 _GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
 _RETRY = 10
+_BATCH_SIZE = 45
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API with rate limiting
@@ -341,7 +342,7 @@ def main():
             sys.exit(1)
 
         # Create batches of subtitle texts
-        batches = batch_subtitles(subtitle_entries, batch_size=50)
+        batches = batch_subtitles(subtitle_entries, batch_size=_BATCH_SIZE)
         print(f"Created {len(batches)} batches of subtitles")
         
         translated_entries = []
