@@ -49,5 +49,25 @@ Configure the translator by editing the `.env` file:
 - python-dotenv  
 - google-genai
 
+## Ubuntu desktop link
+1. Create file on desktop named `Run subtranslator.desktop` with the following:
+```
+[Desktop Entry]
+Version=1.0
+Type=Application
+Terminal=true
+Exec=/home/user/subtranslator/translate.sh
+Name=Subtranslator Launcher
+Comment=Run the Subtranslator script
+Icon=utilities-terminal
+Categories=Utility;
+```
+
+2. add execution flag to it
+3. right clik -> allow to execute
+
+
+
+
 ## License
 MIT License

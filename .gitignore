@@ -1,2 +1,4 @@
 temp_subtitle.srt
 .env
+.venv
+.vscode
