@@ -10,4 +10,6 @@ read -p "Please enter filename: " -e -i "/mnt/torrents/" FILENAME
 # Run your Python script with the provided filename
 python3 ~/subtranslator/subtranslator.py "$FILENAME"
 
-
+# Wait for the user to press any single key before exiting
+echo "" # Add a newline for better formatting
+read -n 1 -s -r -p "Press any key to continue..."
