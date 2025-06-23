@@ -16,25 +16,38 @@ _RETRY = 10
 _BATCH_SIZE = 45
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
-    """Send a request to the Gemini API with rate limiting
+    """Send a request to the Gemini API with rate limiting and retry logic
     """
     global _last_request_time
+    max_retries = 5
+    base_delay = 2  # seconds
     
-    # Calculate time to wait
-    now = time.time()
-    time_since_last = now - _last_request_time
-    if time_since_last < _GEMINI_MIN_REQUEST_INTERVAL:
-        wait_time = _GEMINI_MIN_REQUEST_INTERVAL - time_since_last
-        time.sleep(wait_time)
-    
-    # Make the request
-    client = genai.Client(api_key=api_key)
-    response = client.models.generate_content(model=model, contents=content)
-    
-    # Update last request time
-    _last_request_time = time.time()
-    
-    return response.text
+    for attempt in range(max_retries):
+        try:
+            # Calculate time to wait
+            now = time.time()
+            time_since_last = now - _last_request_time
+            if time_since_last < _GEMINI_MIN_REQUEST_INTERVAL:
+                wait_time = _GEMINI_MIN_REQUEST_INTERVAL - time_since_last
+                time.sleep(wait_time)
+            
+            # Make the request
+            client = genai.Client(api_key=api_key)
+            response = client.models.generate_content(model=model, contents=content)
+            
+            # Update last request time
+            _last_request_time = time.time()
+            
+            return response.text
+            
+        except Exception as e:
+            if attempt < max_retries - 1:
+                delay = base_delay * (2 ** attempt)  # Exponential backoff
+                print(f"Request failed (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
+                print(f"Error: {str(e)}")
+                time.sleep(delay)
+            else:
+                raise Exception(f"Failed to get response after {max_retries} attempts: {str(e)}")
 
 def llm_request(config, content: str) -> str:
     if config['provider'] == 'gemini':
