@@ -262,7 +262,7 @@ def format_subtitle_entry(entry: SubtitleEntry) -> str:
 def save_subtitles(config, entries: list[SubtitleEntry], mkv_file: str):
     """Save subtitle entries to a file in SRT format"""
     # Create output filename by replacing .mkv extension with .srt
-    output_file = Path(mkv_file).with_stem(f"{Path(mkv_file).stem}_{config['language']}").with_suffix('.srt')
+    output_file = Path(mkv_file).with_stem(f"{Path(mkv_file).stem}.{config['language']}").with_suffix('.srt')
     
     try:
         with open(output_file, 'w', encoding='utf-8') as f:
