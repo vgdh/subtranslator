@@ -12,8 +12,8 @@ _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/15  # requests per minute)
 _GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
-_RETRY = 10
-_BATCH_SIZE = 40
+_RETRY = 20
+_BATCH_SIZE = 60
 
 def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API with rate limiting and retry logic
@@ -217,21 +217,17 @@ def batch_subtitles(subtitle_entries: list[SubtitleEntry], batch_size: int = 10)
 
 def process_batch(batch: list[str], config: dict) -> list[str]:
     """
-    Process a batch of subtitle texts using the LLM API
-    
-    Args:
-        batch: List of subtitle texts to process
-        config: Configuration dictionary with API settings
-        
-    Returns:
-        List of processed/translated texts
+    Process a batch of subtitle texts using the LLM API.
+    If the response length doesn't match, split the batch into smaller ones and retry.
     """
+    if not batch:
+        return []
 
     retry_count = 0
     
     while retry_count < _RETRY:
         # Create JSON array of texts
-        content = json.dumps(batch)
+        content = json.dumps(batch, ensure_ascii=False)
         
         # Make the API request
         request = request_builder(content, config)
@@ -239,24 +235,31 @@ def process_batch(batch: list[str], config: dict) -> list[str]:
         
         if response:
             cleaned_response = response[response.find('['):response.rfind(']') + 1]
-            # Parse the JSON response
             try:
                 translated_texts = json.loads(cleaned_response)
                 
-                # Check if lengths match
+                # ✅ If lengths match, return immediately
                 if len(translated_texts) == len(batch):
                     return translated_texts
-                else:
-                    print(f"Warning: Response length mismatch (got {len(translated_texts)}, expected {len(batch)}). Retrying...")
-                    retry_count += 1
-                    
+                
+                # ❌ If mismatch, split batch
+                print(f"⚠️ Response length mismatch (got {len(translated_texts)}, expected {len(batch)}). Splitting batch...")
+                mid = len(batch) // 2
+                first_half = process_batch(batch[:mid], config)
+                second_half = process_batch(batch[mid:], config)
+                return first_half + second_half
+                
             except json.JSONDecodeError:
-                print("Error: Failed to decode JSON response. Retrying...")
+                print("⚠️ Failed to decode JSON response. Retrying...")
                 retry_count += 1
         else:
             raise ValueError("Error: No response from LLM API")
+        
+        retry_count += 1
+        time.sleep(2 ** retry_count)  # Exponential backoff
     
     raise Exception(f"Failed to get correct translation after {_RETRY} attempts")
+
 
 def request_builder(content, config):
     req = f"""Task: 
