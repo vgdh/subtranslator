@@ -62,7 +62,7 @@ def create_default_config():
     env_path = script_dir / '.env'
     if not env_path.exists():
         with open(env_path, 'w') as f:
-            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE=russian")
+            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE_OUT_OUT=russian")
 
 def load_config():
     """Load configuration from .env file"""
@@ -74,7 +74,7 @@ def load_config():
     config = {
         'provider': os.getenv('PROVIDER', 'gemini'),
         'api_key': os.getenv('API_KEY', 'enterkey'),
-        'language': os.getenv('LANGUAGE', 'russian')
+        'language': os.getenv('LANGUAGE_OUT', 'russian')
     }
     
     if config['api_key'] == 'enterkey':
