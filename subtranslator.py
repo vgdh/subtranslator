@@ -11,7 +11,7 @@ import time
 _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/15  # requests per minute)
-_GEMINI_MODEL = "gemini-2.5-flash-preview-05-20"
+_GEMINI_MODEL = "gemini-2.5-flash"
 _RETRY = 20
 _BATCH_SIZE = 60
 
