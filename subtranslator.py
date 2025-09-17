@@ -10,7 +10,7 @@ import time
 
 _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
-_GEMINI_MIN_REQUEST_INTERVAL = 60/15  # requests per minute)
+_GEMINI_MIN_REQUEST_INTERVAL = 60/9  # requests per minute)
 _GEMINI_MODEL = "gemini-2.5-flash"
 _RETRY = 20
 _BATCH_SIZE = 60
@@ -19,8 +19,8 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API with rate limiting and retry logic
     """
     global _last_request_time
-    max_retries = 10
-    base_delay = 2  # seconds
+    max_retries = 40
+    base_delay = 1  # seconds
     
     for attempt in range(max_retries):
         try:
@@ -42,7 +42,7 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
             
         except Exception as e:
             if attempt < max_retries - 1:
-                delay = base_delay * (2 ** attempt)  # Exponential backoff
+                delay = base_delay + 5 * attempt 
                 print(f"Request failed (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
                 print(f"Error: {str(e)}")
                 time.sleep(delay)
