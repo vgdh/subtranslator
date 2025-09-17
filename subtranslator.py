@@ -19,7 +19,7 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the Gemini API with rate limiting and retry logic
     """
     global _last_request_time
-    max_retries = 5
+    max_retries = 10
     base_delay = 2  # seconds
     
     for attempt in range(max_retries):
