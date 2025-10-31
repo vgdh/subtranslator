@@ -11,6 +11,7 @@ A Python tool that extracts and translates subtitles from MKV files using AI.
 
 ## Prerequisites
 - Python 3.x
+- FFMPEG
 
 ## Installation
 1. Clone this repository
