@@ -18,7 +18,11 @@ A Python tool that extracts and translates subtitles from MKV files using AI.
 ```sh
 pip install -r requirements.txt
 ```
-3. Create a `.env` file with your configuration:
+3. Create python venv
+```
+python3 -m venv .venv
+```
+4. Create a `.env` file with your configuration:
 ```
 PROVIDER=gemini
 API_KEY=your_gemini_api_key
