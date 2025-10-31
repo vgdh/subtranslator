@@ -15,13 +15,13 @@ A Python tool that extracts and translates subtitles from MKV files using AI.
 
 ## Installation
 1. Clone this repository
-2. Install required packages:
-```sh
-pip install -r requirements.txt
-```
-3. Create python venv
+2. Create python venv
 ```
 python3 -m venv .venv
+```
+3. Install required packages:
+```sh
+pip install -r requirements.txt
 ```
 4. Create a `.env` file with your configuration:
 ```
