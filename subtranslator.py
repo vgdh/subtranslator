@@ -62,7 +62,7 @@ def create_default_config():
     env_path = script_dir / '.env'
     if not env_path.exists():
         with open(env_path, 'w') as f:
-            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE_OUT_OUT=russian")
+            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE_OUT=russian")
 
 def load_config():
     """Load configuration from .env file"""
@@ -312,7 +312,7 @@ def remove_curly_brace_content(entries: list[SubtitleEntry]) -> list[SubtitleEnt
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python main.py <mkv_file>")
+        print("Usage: python subtranslator.py <mkv_file>")
         sys.exit(1)
     
     # Load configuration
