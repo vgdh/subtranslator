@@ -10,7 +10,7 @@ import time
 
 _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
-_GEMINI_MIN_REQUEST_INTERVAL = 60/9  # requests per minute)
+_GEMINI_MIN_REQUEST_INTERVAL = 60/27  # requests per minute
 _GEMINI_MODEL = "gemma-3-27b-it"
 _RETRY = 20
 _BATCH_SIZE = 40
