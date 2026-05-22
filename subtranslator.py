@@ -54,44 +54,66 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
                 raise Exception(f"Failed to get response after {max_retries} attempts: {str(e)}")
 
 def openrouter_request(api_key: str, model: str, content: str) -> str:
-    """Send a request to the OpenRouter API."""
-    data = json.dumps({
-        "model": model,
-        "messages": [{"role": "user", "content": content}],
-        "max_tokens": 8192,
-    }).encode('utf-8')
+    """Send a request to the OpenRouter API with retry logic."""
+    max_retries = 5
+    base_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        data = json.dumps({
+            "model": model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 8192,
+        }).encode('utf-8')
 
-    request = urllib.request.Request(
-        _OPENROUTER_URL,
-        data=data,
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {api_key}',
-        },
-        method='POST'
-    )
+        request = urllib.request.Request(
+            _OPENROUTER_URL,
+            data=data,
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}',
+            },
+            method='POST'
+        )
 
-    try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            response_body = response.read().decode('utf-8')
-            response_json = json.loads(response_body)
-            choices = response_json.get('choices', [])
-            if not choices:
-                raise ValueError('OpenRouter response did not contain any choices')
-            message = choices[0].get('message', {})
-            content_text = message.get('content') or message.get('content', {}).get('text')
-            if content_text is None:
-                raise ValueError('OpenRouter response did not contain assistant content')
-            return content_text
-    except urllib.error.HTTPError as e:
-        error_text = e.read().decode('utf-8', errors='ignore')
-        if e.code == 403:
-            raise Exception(
-                f'OpenRouter HTTPError 403: Forbidden. Check that your API_KEY is a valid OpenRouter key and that the model "{model}" is accessible. Response: {error_text}'
-            )
-        raise Exception(f'OpenRouter HTTPError {e.code}: {error_text}')
-    except urllib.error.URLError as e:
-        raise Exception(f'OpenRouter URLError: {e.reason}')
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:
+                response_body = response.read().decode('utf-8')
+                response_json = json.loads(response_body)
+                choices = response_json.get('choices', [])
+                if not choices:
+                    raise ValueError('OpenRouter response did not contain any choices')
+                message = choices[0].get('message', {})
+                content_text = message.get('content') or message.get('content', {}).get('text')
+                if content_text is None:
+                    raise ValueError('OpenRouter response did not contain assistant content')
+                return content_text
+        except urllib.error.HTTPError as e:
+            error_text = e.read().decode('utf-8', errors='ignore')
+            
+            # 403 is permanent, don't retry
+            if e.code == 403:
+                raise Exception(
+                    f'OpenRouter HTTPError 403: Forbidden. Check that your API_KEY is a valid OpenRouter key and that the model "{model}" is accessible. Response: {error_text}'
+                )
+            
+            # Retry on 5xx errors (server errors) and 429 (rate limit)
+            if e.code >= 500 or e.code == 429:
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    print(f"OpenRouter error {e.code} (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
+                    time.sleep(delay)
+                    continue
+            
+            raise Exception(f'OpenRouter HTTPError {e.code}: {error_text}')
+        except urllib.error.URLError as e:
+            if attempt < max_retries - 1:
+                delay = base_delay * (2 ** attempt)
+                print(f"OpenRouter URLError (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
+                time.sleep(delay)
+                continue
+            raise Exception(f'OpenRouter URLError: {e.reason}')
+    
+    raise Exception(f"Failed to get response from OpenRouter after {max_retries} attempts")
 
 
 def llm_request(config, content: str) -> str:
