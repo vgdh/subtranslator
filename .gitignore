@@ -1,4 +1,5 @@
 temp_subtitle.srt
-.env
+.env*
 .venv
 .github/copilot-instructions.md
+__pycache__/*

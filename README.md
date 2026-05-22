@@ -27,7 +27,16 @@ pip install -r requirements.txt
 ```
 PROVIDER=gemini
 API_KEY=your_gemini_api_key
-LANGUAGE=target_language
+LANGUAGE_OUT=target_language
+MODEL=gemma-4-31b-it
+```
+
+If you want to use OpenRouter instead:
+```
+PROVIDER=openrouter
+API_KEY=your_openrouter_api_key
+LANGUAGE_OUT=target_language
+MODEL=google/gemma-4-31b-it
 ```
 
 ## Usage
@@ -45,9 +54,10 @@ The script will:
 
 ## Configuration
 Configure the translator by editing the `.env` file:
-- `PROVIDER`: Translation provider (currently only supports `gemini`)
-- `API_KEY`: Your Gemini API key
-- `LANGUAGE`: Target language for translation
+- `PROVIDER`: Translation provider (`gemini` or `openrouter`)
+- `API_KEY`: Your API key for Gemini or OpenRouter
+- `LANGUAGE_OUT`: Target language for translation
+- `MODEL`: Optional model override for OpenRouter (default: `gemma-4-31b-it`)
 
 ## Requirements
 - ffmpeg-python

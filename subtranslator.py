@@ -7,11 +7,15 @@ from pathlib import Path
 from google import genai #google-genai
 import json
 import time
+import urllib.request
+import urllib.error
 
 _TMP_FILE = "temp_subtitle.srt"
 _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/27  # requests per minute
 _GEMINI_MODEL = "gemma-4-31b-it"
+_OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+_OPENROUTER_MODEL = "google/gemma-4-31b-it:free"
 _RETRY = 20
 _BATCH_SIZE = 40
 
@@ -49,11 +53,54 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
             else:
                 raise Exception(f"Failed to get response after {max_retries} attempts: {str(e)}")
 
+def openrouter_request(api_key: str, model: str, content: str) -> str:
+    """Send a request to the OpenRouter API."""
+    data = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": content}],
+        "max_tokens": 8192,
+    }).encode('utf-8')
+
+    request = urllib.request.Request(
+        _OPENROUTER_URL,
+        data=data,
+        headers={
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}',
+        },
+        method='POST'
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response:
+            response_body = response.read().decode('utf-8')
+            response_json = json.loads(response_body)
+            choices = response_json.get('choices', [])
+            if not choices:
+                raise ValueError('OpenRouter response did not contain any choices')
+            message = choices[0].get('message', {})
+            content_text = message.get('content') or message.get('content', {}).get('text')
+            if content_text is None:
+                raise ValueError('OpenRouter response did not contain assistant content')
+            return content_text
+    except urllib.error.HTTPError as e:
+        error_text = e.read().decode('utf-8', errors='ignore')
+        if e.code == 403:
+            raise Exception(
+                f'OpenRouter HTTPError 403: Forbidden. Check that your API_KEY is a valid OpenRouter key and that the model "{model}" is accessible. Response: {error_text}'
+            )
+        raise Exception(f'OpenRouter HTTPError {e.code}: {error_text}')
+    except urllib.error.URLError as e:
+        raise Exception(f'OpenRouter URLError: {e.reason}')
+
+
 def llm_request(config, content: str) -> str:
     if config['provider'] == 'gemini':
         return gemini_request(config['api_key'], _GEMINI_MODEL, content)
+    elif config['provider'] == 'openrouter':
+        return openrouter_request(config['api_key'], config['model'], content)
     else:
-        raise ValueError(f"Unsupported model: {config['provider']}")
+        raise ValueError(f"Unsupported provider: {config['provider']}")
 
 
 def create_default_config():
@@ -62,7 +109,7 @@ def create_default_config():
     env_path = script_dir / '.env'
     if not env_path.exists():
         with open(env_path, 'w') as f:
-            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE_OUT=russian")
+            f.write("PROVIDER=gemini\nAPI_KEY=enterkey\nLANGUAGE_OUT=russian\nMODEL=gemma-4-31b-it")
 
 def load_config():
     """Load configuration from .env file"""
@@ -74,7 +121,8 @@ def load_config():
     config = {
         'provider': os.getenv('PROVIDER', 'gemini'),
         'api_key': os.getenv('API_KEY', 'enterkey'),
-        'language': os.getenv('LANGUAGE_OUT', 'russian')
+        'language': os.getenv('LANGUAGE_OUT', 'russian'),
+        'model': os.getenv('MODEL', _OPENROUTER_MODEL),
     }
     
     if config['api_key'] == 'enterkey':
