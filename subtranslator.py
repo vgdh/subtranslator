@@ -55,7 +55,7 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
 
 def openrouter_request(api_key: str, model: str, content: str) -> str:
     """Send a request to the OpenRouter API with retry logic."""
-    max_retries = 5
+    max_retries = 30
     base_delay = 2  # seconds
     
     for attempt in range(max_retries):
