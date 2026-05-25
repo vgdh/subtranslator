@@ -46,7 +46,7 @@ def gemini_request(api_key: str, model: str, content: str) -> str:
             
         except Exception as e:
             if attempt < max_retries - 1:
-                delay = base_delay + 5 * attempt 
+                delay = min(60, base_delay + 5 * attempt)
                 print(f"Request failed (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
                 print(f"Error: {str(e)}")
                 time.sleep(delay)
@@ -99,7 +99,7 @@ def openrouter_request(api_key: str, model: str, content: str) -> str:
             # Retry on 5xx errors (server errors) and 429 (rate limit)
             if e.code >= 500 or e.code == 429:
                 if attempt < max_retries - 1:
-                    delay = base_delay * (2 ** attempt)
+                    delay = min(60, base_delay * (2 ** attempt))
                     print(f"OpenRouter error {e.code} (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
                     time.sleep(delay)
                     continue
@@ -107,7 +107,7 @@ def openrouter_request(api_key: str, model: str, content: str) -> str:
             raise Exception(f'OpenRouter HTTPError {e.code}: {error_text}')
         except urllib.error.URLError as e:
             if attempt < max_retries - 1:
-                delay = base_delay * (2 ** attempt)
+                delay = min(60, base_delay * (2 ** attempt))
                 print(f"OpenRouter URLError (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
                 time.sleep(delay)
                 continue
@@ -326,7 +326,8 @@ def process_batch(batch: list[str], config: dict) -> list[str]:
             raise ValueError("Error: No response from LLM API")
         
         retry_count += 1
-        time.sleep(2 ** retry_count)  # Exponential backoff
+        delay = min(60, 2 ** retry_count)
+        time.sleep(delay)  # Exponential backoff (capped at 60s)
     
     raise Exception(f"Failed to get correct translation after {_RETRY} attempts")
 
