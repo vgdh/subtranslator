@@ -81,12 +81,19 @@ def openrouter_request(api_key: str, model: str, content: str) -> str:
                 response_json = json.loads(response_body)
                 choices = response_json.get('choices', [])
                 if not choices:
-                    raise ValueError('OpenRouter response did not contain any choices')
+                    if attempt < max_retries - 1:
+                        delay = min(60, base_delay * (2 ** attempt))
+                        print(f"OpenRouter response did not contain any choices (attempt {attempt + 1}/{max_retries}). Retrying in {delay} seconds...")
+                        time.sleep(delay)
+                        continue
+                    raise Exception(f'OpenRouter response did not contain any choices (attempt {max_retries}).')
+                
                 message = choices[0].get('message', {})
                 content_text = message.get('content') or message.get('content', {}).get('text')
                 if content_text is None:
                     raise ValueError('OpenRouter response did not contain assistant content')
                 return content_text
+            
         except urllib.error.HTTPError as e:
             error_text = e.read().decode('utf-8', errors='ignore')
             
