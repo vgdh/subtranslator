@@ -15,7 +15,7 @@ _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/27  # requests per minute
 _GEMINI_MODEL = "gemma-4-31b-it"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_OPENROUTER_MODEL = "google/gemma-4-31b-it:free"
+_OPENROUTER_MODEL = "deepseek/deepseek-v4.1-flash"
 _RETRY = 20
 _BATCH_SIZE = 40
 
@@ -63,6 +63,18 @@ def openrouter_request(api_key: str, model: str, content: str) -> str:
             "model": model,
             "messages": [{"role": "user", "content": content}],
             "max_tokens": 8192,
+            "reasoning": {"effort": "none"},
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "subtitle_translation_batch",
+                    "strict": True,
+                    "schema": {
+                        "type": "array",
+                        "items": {"type": "string"}
+                    }
+                }
+            },
         }).encode('utf-8')
 
         request = urllib.request.Request(
@@ -346,7 +358,12 @@ Translate provided JSON to {config['language']}
 Context:
 {str(content)}
 ============================================================
-You MUST respond JSON only, and the response must be a JSON array of the same length as the input JSON array."""
+Return only valid JSON for a single array of translated strings.
+Rules:
+- Output must be a JSON array of the same length as the input JSON array.
+- Each item must be a string.
+- No markdown fences, no prose, no commentary, no code block markers.
+- The response must be valid JSON only."""
     return req
 
 def format_subtitle_entry(entry: SubtitleEntry) -> str:
