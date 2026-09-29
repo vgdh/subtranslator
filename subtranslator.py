@@ -64,11 +64,6 @@ def openrouter_request(api_key: str, model: str, content: str) -> str:
             "messages": [{"role": "user", "content": content}],
             "max_tokens": 8192,
             "reasoning": {"effort": "none"},
-            "provider": {
-                "sort": "price",        # Sorts providers from cheapest to most expensive
-                "allow_fallbacks": False, # Fall back to the next cheapest if the lowest-cost provider is down
-                "data_collection": "allow"
-            },
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
