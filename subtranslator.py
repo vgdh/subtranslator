@@ -15,7 +15,7 @@ _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/27  # requests per minute
 _GEMINI_MODEL = "gemma-4-31b-it"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_OPENROUTER_MODEL = "deepseek/deepseek-v4.1-flash"
+_OPENROUTER_MODEL = "@preset/deepseek"
 _RETRY = 20
 _BATCH_SIZE = 40
 
@@ -64,6 +64,10 @@ def openrouter_request(api_key: str, model: str, content: str) -> str:
             "messages": [{"role": "user", "content": content}],
             "max_tokens": 8192,
             "reasoning": {"effort": "none"},
+            "provider": {
+                "sort": "price",        # Sorts providers from cheapest to most expensive
+                "allow_fallbacks": False # Fall back to the next cheapest if the lowest-cost provider is down
+            },
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
