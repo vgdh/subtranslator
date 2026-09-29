@@ -15,7 +15,7 @@ _last_request_time = 0
 _GEMINI_MIN_REQUEST_INTERVAL = 60/27  # requests per minute
 _GEMINI_MODEL = "gemma-4-31b-it"
 _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-_OPENROUTER_MODEL = "@preset/deepseek"
+_OPENROUTER_MODEL = "@preset/deep-seek-subtranslator"
 _RETRY = 20
 _BATCH_SIZE = 40
 
