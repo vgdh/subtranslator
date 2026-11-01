@@ -372,7 +372,7 @@ def format_subtitle_entry(entry: SubtitleEntry) -> str:
 
 def save_subtitles(config, entries: list[SubtitleEntry], mkv_file: str):
     """Save subtitle entries to a file in SRT format"""
-    # Create output filename by replacing .mkv extension with .srt
+    # Create output filename using the source file's name and the target language.
     output_file = Path(mkv_file).with_stem(f"{Path(mkv_file).stem}.{config['language']}").with_suffix('.srt')
     
     try:
@@ -407,7 +407,7 @@ def remove_curly_brace_content(entries: list[SubtitleEntry]) -> list[SubtitleEnt
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: python subtranslator.py <mkv_file>")
+        print("Usage: python subtranslator.py <media_file>")
         sys.exit(1)
     
     # Load configuration
@@ -426,9 +426,6 @@ def main():
     print("-" * 50 + "\n")
 
     mkv_file = sys.argv[1]
-    if not mkv_file.lower().endswith('.mkv'):
-        print("Error: Please provide a .mkv file")
-        sys.exit(1)
     
     stream_index = list_subtitles(mkv_file)
     if stream_index is not None:

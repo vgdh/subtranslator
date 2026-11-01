@@ -1,9 +1,9 @@
 # Subtranslator (Subtitle translator)
 
-A Python tool that extracts and translates subtitles from MKV files using AI.
+A Python tool that extracts and translates subtitles from media files supported by FFmpeg using AI.
 
 ## Features
-- Extracts subtitle tracks from MKV files using ffmpeg
+- Extracts subtitle tracks from FFmpeg-supported media files
 - Translates subtitles using AI model (only Google's Gemini currently implemented. You need to create a free key https://aistudio.google.com/apikey)
 - Supports batch processing to handle rate limits
 - Shows estimated completion time during translation
@@ -40,17 +40,19 @@ MODEL=google/gemma-4-31b-it
 ```
 
 ## Usage
-Run the script with an MKV file as argument:
+Run the script with a media file as argument:
 
 ```sh
-python subtranslator.py video.mkv
+python subtranslator.py video.webm
 ```
 
 The script will:
-1. List all available subtitle tracks in the MKV file
+1. List all available subtitle tracks in the media file
 2. Let you select which subtitle track to translate
 3. Extract and translate the subtitles
 4. Save the translated subtitles as `video_language.srt`
+
+The input container must be readable by FFmpeg, and the selected subtitle track must be convertible to SRT. Some image-based subtitle formats cannot be converted.
 
 ## Configuration
 Configure the translator by editing the `.env` file:
